@@ -77,8 +77,9 @@ python scripts/train.py \
   --data data/train.bin
 
 # Multi-GPU DDP
-TORCHRUN_EXAMPLE="torchrun --standalone --nproc_per_node=2 scripts/train.py --config configs/base-125m.json --data data/train.bin"
-echo "$TORCHRUN_EXAMPLE"
+torchrun --standalone --nproc_per_node=2 scripts/train.py \
+  --config configs/base-125m.json \
+  --data data/train.bin
 
 python scripts/evaluate.py \
   --checkpoint checkpoints/latest.pt \
