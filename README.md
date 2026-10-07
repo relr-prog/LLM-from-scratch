@@ -1,49 +1,135 @@
 # LLM-from-scratch
 
-A from-scratch GPT-style language model training stack.
+A language model built from first principles with PyTorch.
 
-The goal is to build the complete pipeline ourselves:
-- corpus ingestion and cleaning
-- byte-level BPE tokenizer
-- token dataset packing
+## Architecture
+
+- byte-level BPE tokenizer trained locally
+- Unicode normalization and exact-content deduplication
+- packed binary token dataset
 - decoder-only Transformer
-- causal self-attention + RoPE
-- RMSNorm + SwiGLU
-- AdamW + warmup/cosine decay
-- mixed precision, gradient accumulation and clipping
-- checkpoints and resume
-- validation loss/perplexity
-- autoregressive generation
+- causal self-attention
+- RoPE positional encoding
+- RMSNorm
+- SwiGLU MLP
+- tied token embedding / LM head
+- AdamW optimizer
+- warmup + cosine learning-rate schedule
+- gradient accumulation and clipping
+- CUDA BF16/FP16 mixed precision
+- checkpoint/resume
+- validation loss and perplexity
+- temperature, top-k and top-p sampling
+- CI smoke tests
 
-This repository intentionally starts with a small model so the entire system can be trained and debugged before scaling.
+## P0 → P1 pipeline
+
+```text
+raw documents
+    ↓
+normalize + deduplicate
+    ↓
+clean corpus + manifest
+    ↓
+train byte-BPE
+    ↓
+token IDs
+    ↓
+binary dataset
+    ↓
+Transformer pretraining
+    ↓
+checkpoint
+    ↓
+autoregressive generation
+```
 
 ## Quick start
 
-Python 3.11+ and PyTorch are recommended.
+Python 3.11+ and PyTorch are required.
 
 ```bash
 pip install -e .
-python scripts/prepare_data.py --input data/raw --output data/clean.txt
-python scripts/train_tokenizer.py --input data/clean.txt --output data/tokenizer
-python scripts/encode.py --input data/clean.txt --tokenizer data/tokenizer --output data/train.bin
-python scripts/train.py --config configs/tiny.json
-python scripts/generate.py --checkpoint checkpoints/latest.pt --tokenizer data/tokenizer --prompt "The future of computing"
+
+python scripts/prepare_data.py \
+  --input data/raw \
+  --output data/clean.txt
+
+python scripts/train_tokenizer.py \
+  --input data/clean.txt \
+  --output data/tokenizer
+
+python scripts/test_tokenizer.py \
+  --tokenizer data/tokenizer
+
+python scripts/encode.py \
+  --input data/clean.txt \
+  --tokenizer data/tokenizer \
+  --output data/train.bin
+
+python scripts/train.py \
+  --config configs/tiny.json \
+  --data data/train.bin
+
+python scripts/generate.py \
+  --checkpoint checkpoints/latest.pt \
+  --tokenizer data/tokenizer \
+  --prompt "The future of computing"
 ```
 
-Put plain text, Markdown, JSON, or JSONL files under `data/raw/`.
+The included corpus is only a smoke-test corpus. A useful model needs a substantially larger, high-quality dataset.
 
-## First target
+## Project layout
 
-The default tiny configuration is deliberately small. Its purpose is correctness, not benchmark performance. Once loss decreases and generation works, increase depth/width/context and dataset size.
+```text
+src/llm/
+  bpe.py       tokenizer
+  config.py    model/training configuration
+  data.py      corpus + binary dataset
+  model.py     Transformer
+  text.py      normalization + document iteration
 
-## Training objective
+scripts/
+  prepare_data.py
+  train_tokenizer.py
+  test_tokenizer.py
+  encode.py
+  train.py
+  generate.py
+  smoke_test.py
 
-For tokens x_0 ... x_n, the model learns:
+configs/
+  tiny.json
+```
 
-P(x_t | x_0 ... x_{t-1})
+## Scaling roadmap
 
-using next-token cross entropy with a causal attention mask.
+**P0 — correctness**
+- tiny model
+- tokenizer
+- forward/backward
+- generation
+- CI
 
-## License
+**P1 — data and training quality**
+- normalization
+- deduplication
+- manifests
+- reproducible tokenizer artifacts
+- numerical stability checks
 
-Project-specific licensing should be added before public distribution.
+**P2 — scale**
+- streaming datasets
+- larger context
+- larger model configurations
+- checkpoint rotation
+- distributed training
+- throughput profiling
+
+**P3 — post-training**
+- instruction tuning
+- chat templates
+- evaluation suite
+- safety and refusal behavior
+
+The model is trained from random initialization. No pretrained model weights are used.
