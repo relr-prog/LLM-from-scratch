@@ -16,6 +16,8 @@ class ModelConfig:
             raise ValueError("model dimensions must be positive")
         if self.vocab_size < 256:
             raise ValueError("vocab_size must be at least 256")
+        if not 0.0 <= self.dropout < 1.0:
+            raise ValueError("dropout must be in [0, 1)")
 
 @dataclass
 class TrainConfig:
@@ -31,9 +33,12 @@ class TrainConfig:
     grad_clip: float = 1.0
     seed: int = 1337
     checkpoint_dir: str = "checkpoints"
+    keep_checkpoints: int = 3
 
     def __post_init__(self):
-        if min(self.batch_size, self.grad_accum_steps, self.max_steps, self.eval_interval, self.eval_steps) < 1:
+        if min(self.batch_size, self.grad_accum_steps, self.max_steps, self.eval_interval, self.eval_steps, self.keep_checkpoints) < 1:
             raise ValueError("training counts must be positive")
         if self.learning_rate <= 0 or self.min_learning_rate < 0:
             raise ValueError("learning rates must be non-negative and max lr must be positive")
+        if self.min_learning_rate > self.learning_rate:
+            raise ValueError("min_learning_rate cannot exceed learning_rate")
