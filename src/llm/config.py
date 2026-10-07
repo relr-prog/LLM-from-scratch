@@ -9,6 +9,14 @@ class ModelConfig:
     n_embd: int = 512
     dropout: float = 0.0
 
+    def __post_init__(self):
+        if self.n_embd % self.n_head != 0:
+            raise ValueError("n_embd must be divisible by n_head")
+        if self.block_size < 1 or self.n_layer < 1 or self.n_head < 1:
+            raise ValueError("model dimensions must be positive")
+        if self.vocab_size < 256:
+            raise ValueError("vocab_size must be at least 256")
+
 @dataclass
 class TrainConfig:
     batch_size: int = 8
@@ -23,3 +31,9 @@ class TrainConfig:
     grad_clip: float = 1.0
     seed: int = 1337
     checkpoint_dir: str = "checkpoints"
+
+    def __post_init__(self):
+        if min(self.batch_size, self.grad_accum_steps, self.max_steps, self.eval_interval, self.eval_steps) < 1:
+            raise ValueError("training counts must be positive")
+        if self.learning_rate <= 0 or self.min_learning_rate < 0:
+            raise ValueError("learning rates must be non-negative and max lr must be positive")
