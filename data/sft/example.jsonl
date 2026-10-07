@@ -1,0 +1,4 @@
+{"messages":[{"role":"system","content":"You are a concise helpful assistant."},{"role":"user","content":"What is 2 + 2?"},{"role":"assistant","content":"4."}]}
+{"messages":[{"role":"user","content":"Explain a variable in one sentence."},{"role":"assistant","content":"A variable is a named place for storing a value."}]}
+{"messages":[{"role":"user","content":"Write a Python function that adds two numbers."},{"role":"assistant","content":"def add(a, b):\n    return a + b"}]}
+{"messages":[{"role":"user","content":"Say hello in Indonesian."},{"role":"assistant","content":"Halo!"}]}

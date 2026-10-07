@@ -1,0 +1,4 @@
+{"id":"math-2plus2","type":"contains","prompt":"What is 2 + 2?","expected":"4"}
+{"id":"definition-variable","type":"contains","prompt":"What is a variable in programming?","expected":"named"}
+{"id":"indonesian-greeting","type":"contains","prompt":"Say hello in Indonesian.","expected":"Halo"}
+{"id":"python-add","type":"contains","prompt":"Write a Python function that adds two numbers.","expected":"return a + b"}

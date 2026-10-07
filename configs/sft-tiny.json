@@ -1,0 +1,27 @@
+{
+  "model": {
+    "vocab_size": 8192,
+    "block_size": 256,
+    "n_layer": 6,
+    "n_head": 8,
+    "n_embd": 512,
+    "dropout": 0.0,
+    "gradient_checkpointing": true
+  },
+  "train": {
+    "batch_size": 4,
+    "grad_accum_steps": 1,
+    "max_steps": 1000,
+    "eval_interval": 100,
+    "eval_steps": 10,
+    "learning_rate": 0.00005,
+    "min_learning_rate": 0.000005,
+    "warmup_steps": 50,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "seed": 1337,
+    "checkpoint_dir": "checkpoints",
+    "keep_checkpoints": 3,
+    "distributed": "none"
+  }
+}
