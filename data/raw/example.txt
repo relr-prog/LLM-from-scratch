@@ -1,0 +1,7 @@
+This is a tiny training corpus for the LLM from scratch project.
+
+A language model learns by predicting the next token from the tokens that came before it. The model sees many examples of text and adjusts its parameters to reduce prediction error.
+
+This example is intentionally small. Replace it with a much larger corpus before expecting useful language generation.
+
+The project uses a decoder-only Transformer with causal attention, rotary position embeddings, RMS normalization, and a SwiGLU feed-forward network.
