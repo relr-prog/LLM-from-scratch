@@ -19,6 +19,9 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 def lr_at(step, cfg):
     if step < cfg.warmup_steps:
         return cfg.learning_rate * (step + 1) / max(1, cfg.warmup_steps)
@@ -33,6 +36,8 @@ def evaluate(model, loader, device, steps):
     for x, y in loader:
         x, y = x.to(device), y.to(device)
         _, loss = model(x, y)
+        if not torch.isfinite(loss):
+            raise FloatingPointError("non-finite validation loss")
         total += loss.item()
         count += 1
         if count >= steps:
@@ -79,7 +84,7 @@ def main():
         start_step = ckpt["step"] + 1
 
     Path(tcfg.checkpoint_dir).mkdir(parents=True, exist_ok=True)
-    print(f"device={device} parameters={sum(p.numel() for p in model.parameters()):,} tokens={n:,}")
+    print(f"device={device} parameters={count_parameters(model):,} tokens={n:,}")
 
     iterator = iter(train_loader)
     for step in range(start_step, tcfg.max_steps):
@@ -98,17 +103,21 @@ def main():
             x, y = x.to(device), y.to(device)
             with torch.autocast(device_type=device, dtype=amp_dtype, enabled=use_amp):
                 _, loss = model(x, y)
+                if not torch.isfinite(loss):
+                    raise FloatingPointError(f"non-finite training loss at step {step}")
                 loss = loss / tcfg.grad_accum_steps
             loss_value += loss.item()
             scaler.scale(loss).backward()
 
         scaler.unscale_(optimizer)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), tcfg.grad_clip)
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), tcfg.grad_clip)
+        if not torch.isfinite(grad_norm):
+            raise FloatingPointError(f"non-finite gradient at step {step}")
         scaler.step(optimizer)
         scaler.update()
 
         if step % 25 == 0:
-            print(f"step={step:6d} loss={loss_value:.4f} lr={lr:.3e}")
+            print(f"step={step:6d} loss={loss_value:.4f} grad={float(grad_norm):.3f} lr={lr:.3e}")
 
         if step % tcfg.eval_interval == 0 or step == tcfg.max_steps - 1:
             val_loss = evaluate(model, val_loader, device, tcfg.eval_steps)
