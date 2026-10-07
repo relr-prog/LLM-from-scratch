@@ -232,8 +232,8 @@ def main():
 
         if step % tcfg.eval_interval == 0 or step == tcfg.max_steps - 1:
             val_loss = evaluate(model, val_loader, device, tcfg.eval_steps, distributed)
+            rng_states = collect_rng_states(distributed)
             if rank == 0:
-                rng_states = collect_rng_states(distributed)
                 payload = {
                     "step": step,
                     "model": raw_model.state_dict(),
@@ -248,7 +248,7 @@ def main():
                 save_checkpoint(checkpoint_dir / "latest.pt", payload)
                 rotate_checkpoints(checkpoint_dir, tcfg.keep_checkpoints)
                 print(f"eval step={step:6d} val_loss={val_loss:.4f} ppl={math.exp(min(20.0, val_loss)):.2f}")
-            elif distributed:
+            if distributed:
                 dist.barrier()
 
     if distributed:
