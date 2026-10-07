@@ -1,22 +1,23 @@
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
 import torch
 
 sys.path.insert(0, "src")
+from llm.bpe import ByteBPE
 from llm.config import ModelConfig
 from llm.model import GPT
-from llm.bpe import ByteBPE
 
 
 def generate(model, tokenizer, prompt, device, tokens, temperature, top_k, top_p):
     ids = tokenizer.encode(prompt)
+    if not ids:
+        raise ValueError("prompt produced zero tokens")
     x = torch.tensor([ids], dtype=torch.long, device=device)
     y = model.generate(x, tokens, temperature, top_k, top_p)
-    return tokenizer.decode(y[0].tolist())[len(tokenizer.decode(ids)):]
+    return tokenizer.decode(y[0, len(ids):].tolist())
 
 
 def main():
@@ -41,7 +42,7 @@ def main():
     results = []
     for row in rows:
         output = generate(model, tokenizer, row["prompt"], device, args.tokens, args.temperature, args.top_k, args.top_p)
-        expected = row.get("expected")
+        expected = row.get("expected", "")
         kind = row.get("type", "contains")
         if kind == "exact":
             passed = output.strip() == expected.strip()

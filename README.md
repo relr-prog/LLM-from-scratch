@@ -23,13 +23,12 @@ A language model built from first principles with PyTorch.
 - gradient checkpointing
 - token throughput metrics
 - standalone evaluation and model inspection
-- validation loss and perplexity
-- temperature, top-k and top-p sampling
-- CI smoke tests
+- supervised fine-tuning with assistant-only loss masking
+- deterministic generation evaluation suite
 
-## P0 → P1 pipeline
+## P0 → P2 pipeline
 
-```text
+```
 raw documents
     ↓
 normalize + deduplicate
@@ -40,8 +39,6 @@ train byte-BPE
     ↓
 token IDs
     ↓
-binary dataset
-    ↓
 Transformer pretraining
     ↓
 checkpoint
@@ -49,7 +46,7 @@ checkpoint
 autoregressive generation
 ```
 
-## P3 — SFT and evaluation
+## P3 — SFT
 
 SFT uses JSONL chat records and masks every non-assistant token with `-100`, so the loss is applied only to assistant responses.
 
@@ -59,13 +56,19 @@ Example training:
 python scripts/train_sft.py --config configs/sft-tiny.json --data data/sft/example.jsonl --tokenizer data/tokenizer --checkpoint checkpoints/sft-latest.pt
 ```
 
-The deterministic evaluation suite supports `exact`, `contains`, and `prefix` checks:
+The SFT checkpoint can be passed to the existing generation script.
+
+## P3 — evaluation suite
+
+The deterministic suite supports `exact`, `contains`, and `prefix` checks:
 
 ```bash
 python scripts/eval_suite.py --checkpoint checkpoints/sft-latest.pt --tokenizer data/tokenizer --suite data/eval/suite.jsonl
 ```
 
-Keep the evaluation set held out from SFT. Language-model quality is measured separately by `scripts/evaluate.py` using loss, perplexity, and token accuracy. Safety/refusal evaluation is intentionally a separate rubric-based benchmark rather than a fake deterministic score.
+Keep the evaluation set held out from SFT. `scripts/evaluate.py` separately reports language-model loss, perplexity, and token accuracy.
+
+Safety/refusal evaluation is intentionally a separate rubric-based benchmark rather than a fake deterministic score.
 
 ## Quick start
 
@@ -74,52 +77,28 @@ Python 3.11+ and PyTorch are required.
 ```bash
 pip install -e .
 
-python scripts/prepare_data.py \
-  --input data/raw \
-  --output data/clean.txt
+python scripts/prepare_data.py --input data/raw --output data/clean.txt
+python scripts/train_tokenizer.py --input data/clean.txt --output data/tokenizer
+python scripts/test_tokenizer.py --tokenizer data/tokenizer
+python scripts/encode.py --input data/clean.txt --tokenizer data/tokenizer --output data/train.bin
 
-python scripts/train_tokenizer.py \
-  --input data/clean.txt \
-  --output data/tokenizer
-
-python scripts/test_tokenizer.py \
-  --tokenizer data/tokenizer
-
-python scripts/encode.py \
-  --input data/clean.txt \
-  --tokenizer data/tokenizer \
-  --output data/train.bin
-
-python scripts/train.py \
-  --config configs/tiny.json \
-  --data data/train.bin
+python scripts/train.py --config configs/tiny.json --data data/train.bin
 
 # Multi-GPU DDP
-torchrun --standalone --nproc_per_node=2 scripts/train.py \
-  --config configs/base-125m.json \
-  --data data/train.bin
-
-python scripts/evaluate.py \
-  --checkpoint checkpoints/latest.pt \
-  --data data/train.bin
-
-python scripts/generate.py \
-  --checkpoint checkpoints/latest.pt \
-  --tokenizer data/tokenizer \
-  --prompt "The future of computing"
+torchrun --standalone --nproc_per_node=2 scripts/train.py --config configs/base-125m.json --data data/train.bin
 ```
-
-The included corpus is only a smoke-test corpus. A useful model needs a substantially larger, high-quality dataset.
 
 ## Project layout
 
-```text
+```
 src/llm/
-  bpe.py       tokenizer
-  config.py    model/training configuration
-  data.py      corpus + binary dataset
-  model.py     Transformer
-  text.py      normalization + document iteration
+  bpe.py
+  config.py
+  data.py
+  mmap_dataset.py
+  model.py
+  sft_data.py
+  text.py
 
 scripts/
   prepare_data.py
@@ -127,12 +106,11 @@ scripts/
   test_tokenizer.py
   encode.py
   train.py
-  evaluate.py
-  inspect_model.py
-  profile_model.py
   train_sft.py
   evaluate.py
   eval_suite.py
+  inspect_model.py
+  profile_model.py
   generate.py
   smoke_test.py
   test_p2.py
@@ -169,8 +147,6 @@ configs/
 - gradient checkpointing
 - throughput profiling
 - standalone evaluation
-- supervised fine-tuning with assistant-only loss masking
-- deterministic generation evaluation suite
 
 **P3 — post-training**
 - supervised fine-tuning
