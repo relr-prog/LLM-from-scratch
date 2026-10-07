@@ -5,7 +5,8 @@
     "n_layer": 12,
     "n_head": 12,
     "n_embd": 768,
-    "dropout": 0.0
+    "dropout": 0.0,
+    "gradient_checkpointing": true
   },
   "train": {
     "batch_size": 2,
@@ -20,6 +21,7 @@
     "grad_clip": 1.0,
     "seed": 1337,
     "checkpoint_dir": "checkpoints",
-    "keep_checkpoints": 3
+    "keep_checkpoints": 3,
+    "distributed": "auto"
   }
 }

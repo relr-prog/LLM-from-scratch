@@ -8,6 +8,7 @@ class ModelConfig:
     n_head: int = 8
     n_embd: int = 512
     dropout: float = 0.0
+    gradient_checkpointing: bool = False
 
     def __post_init__(self):
         if self.n_embd % self.n_head != 0:
@@ -34,6 +35,7 @@ class TrainConfig:
     seed: int = 1337
     checkpoint_dir: str = "checkpoints"
     keep_checkpoints: int = 3
+    distributed: str = "auto"
 
     def __post_init__(self):
         if min(self.batch_size, self.grad_accum_steps, self.max_steps, self.eval_interval, self.eval_steps, self.keep_checkpoints) < 1:
@@ -42,3 +44,5 @@ class TrainConfig:
             raise ValueError("learning rates must be non-negative and max lr must be positive")
         if self.min_learning_rate > self.learning_rate:
             raise ValueError("min_learning_rate cannot exceed learning_rate")
+        if self.distributed not in {"auto", "none", "ddp"}:
+            raise ValueError("distributed must be one of: auto, none, ddp")

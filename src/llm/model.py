@@ -1,7 +1,7 @@
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 
 class RMSNorm(nn.Module):
     def __init__(self, dim, eps=1e-6):
@@ -104,7 +104,10 @@ class GPT(nn.Module):
     def forward(self, idx, targets=None):
         x = self.tok_emb(idx)
         for block in self.blocks:
-            x = block(x)
+            if self.cfg.gradient_checkpointing and self.training:
+                x = checkpoint(block, x, use_reentrant=False)
+            else:
+                x = block(x)
         logits = self.lm_head(self.norm(x))
         loss = None
         if targets is not None:
