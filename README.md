@@ -17,7 +17,12 @@ A language model built from first principles with PyTorch.
 - warmup + cosine learning-rate schedule
 - gradient accumulation and clipping
 - CUDA BF16/FP16 mixed precision
-- checkpoint/resume
+- checkpoint/resume with RNG state and checkpoint rotation
+- memory-mapped token dataset
+- DDP distributed training
+- gradient checkpointing
+- token throughput metrics
+- standalone evaluation and model inspection
 - validation loss and perplexity
 - temperature, top-k and top-p sampling
 - CI smoke tests
@@ -71,6 +76,14 @@ python scripts/train.py \
   --config configs/tiny.json \
   --data data/train.bin
 
+# Multi-GPU DDP
+TORCHRUN_EXAMPLE="torchrun --standalone --nproc_per_node=2 scripts/train.py --config configs/base-125m.json --data data/train.bin"
+echo "$TORCHRUN_EXAMPLE"
+
+python scripts/evaluate.py \
+  --checkpoint checkpoints/latest.pt \
+  --data data/train.bin
+
 python scripts/generate.py \
   --checkpoint checkpoints/latest.pt \
   --tokenizer data/tokenizer \
@@ -95,11 +108,16 @@ scripts/
   test_tokenizer.py
   encode.py
   train.py
+  evaluate.py
+  inspect_model.py
+  profile_model.py
   generate.py
   smoke_test.py
+  test_p2.py
 
 configs/
   tiny.json
+  base-125m.json
 ```
 
 ## Scaling roadmap
@@ -119,12 +137,14 @@ configs/
 - numerical stability checks
 
 **P2 — scale**
-- streaming datasets
+- memory-mapped datasets
 - larger context
 - larger model configurations
-- checkpoint rotation
-- distributed training
+- checkpoint rotation + RNG state
+- DDP distributed training
+- gradient checkpointing
 - throughput profiling
+- standalone evaluation
 
 **P3 — post-training**
 - instruction tuning
