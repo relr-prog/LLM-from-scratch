@@ -49,6 +49,24 @@ checkpoint
 autoregressive generation
 ```
 
+## P3 — SFT and evaluation
+
+SFT uses JSONL chat records and masks every non-assistant token with `-100`, so the loss is applied only to assistant responses.
+
+Example training:
+
+```bash
+python scripts/train_sft.py --config configs/sft-tiny.json --data data/sft/example.jsonl --tokenizer data/tokenizer --checkpoint checkpoints/sft-latest.pt
+```
+
+The deterministic evaluation suite supports `exact`, `contains`, and `prefix` checks:
+
+```bash
+python scripts/eval_suite.py --checkpoint checkpoints/sft-latest.pt --tokenizer data/tokenizer --suite data/eval/suite.jsonl
+```
+
+Keep the evaluation set held out from SFT. Language-model quality is measured separately by `scripts/evaluate.py` using loss, perplexity, and token accuracy. Safety/refusal evaluation is intentionally a separate rubric-based benchmark rather than a fake deterministic score.
+
 ## Quick start
 
 Python 3.11+ and PyTorch are required.
@@ -112,13 +130,18 @@ scripts/
   evaluate.py
   inspect_model.py
   profile_model.py
+  train_sft.py
+  evaluate.py
+  eval_suite.py
   generate.py
   smoke_test.py
   test_p2.py
+  test_p3.py
 
 configs/
   tiny.json
   base-125m.json
+  sft-tiny.json
 ```
 
 ## Scaling roadmap
@@ -146,11 +169,14 @@ configs/
 - gradient checkpointing
 - throughput profiling
 - standalone evaluation
+- supervised fine-tuning with assistant-only loss masking
+- deterministic generation evaluation suite
 
 **P3 — post-training**
-- instruction tuning
-- chat templates
-- evaluation suite
-- safety and refusal behavior
+- supervised fine-tuning
+- chat formatting
+- deterministic evaluation suite
+- held-out validation
+- safety/refusal benchmark with an explicit rubric
 
 The model is trained from random initialization. No pretrained model weights are used.
